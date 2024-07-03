@@ -25,7 +25,7 @@
 use bevy::{
     asset::load_internal_binary_asset,
     ecs::system::SystemParam,
-    input::keyboard::{Key, KeyboardInput},
+    input::keyboard::{ Key, KeyboardInput },
     prelude::*,
     text::BreakLineOn,
 };
@@ -58,8 +58,7 @@ impl Plugin for TextInputPlugin {
                     show_hide_cursor,
                     update_style,
                     show_hide_placeholder,
-                )
-                    .in_set(TextInputSystem),
+                ).in_set(TextInputSystem)
             )
             .register_type::<TextInputSettings>()
             .register_type::<TextInputTextStyle>()
@@ -122,7 +121,7 @@ impl TextInputBundle {
     pub fn with_placeholder(
         mut self,
         placeholder: impl Into<String>,
-        text_style: Option<TextStyle>,
+        text_style: Option<TextStyle>
     ) -> Self {
         self.placeholder = TextInputPlaceholder {
             value: placeholder.into(),
@@ -235,23 +234,30 @@ impl<'w, 's> InnerText<'w, 's> {
 
 fn keyboard(
     mut events: EventReader<KeyboardInput>,
-    mut text_input_query: Query<(
-        Entity,
-        &TextInputSettings,
-        &TextInputInactive,
-        &mut TextInputValue,
-        &mut TextInputCursorPos,
-        &mut TextInputCursorTimer,
-    )>,
-    mut submit_writer: EventWriter<TextInputSubmitEvent>,
+    mut text_input_query: Query<
+        (
+            Entity,
+            &TextInputSettings,
+            &TextInputInactive,
+            &mut TextInputValue,
+            &mut TextInputCursorPos,
+            &mut TextInputCursorTimer,
+        )
+    >,
+    mut submit_writer: EventWriter<TextInputSubmitEvent>
 ) {
     if events.is_empty() {
         return;
     }
 
-    for (input_entity, settings, inactive, mut text_input, mut cursor_pos, mut cursor_timer) in
-        &mut text_input_query
-    {
+    for (
+        input_entity,
+        settings,
+        inactive,
+        mut text_input,
+        mut cursor_pos,
+        mut cursor_timer,
+    ) in &mut text_input_query {
         if inactive.0 {
             continue;
         }
@@ -261,7 +267,7 @@ fn keyboard(
         for event in events.read() {
             if !event.state.is_pressed() {
                 continue;
-            };
+            }
 
             let pos = cursor_pos.bypass_change_detection().0;
 
@@ -308,7 +314,7 @@ fn keyboard(
                     } else {
                         submitted_value = Some(std::mem::take(&mut text_input.0));
                         cursor_pos.0 = 0;
-                    };
+                    }
 
                     continue;
                 }
@@ -344,15 +350,10 @@ fn keyboard(
 
 fn update_value(
     mut input_query: Query<
-        (
-            Entity,
-            Ref<TextInputValue>,
-            &TextInputSettings,
-            &mut TextInputCursorPos,
-        ),
-        Or<(Changed<TextInputValue>, Changed<TextInputCursorPos>)>,
+        (Entity, Ref<TextInputValue>, &TextInputSettings, &mut TextInputCursorPos),
+        Or<(Changed<TextInputValue>, Changed<TextInputCursorPos>)>
     >,
-    mut inner_text: InnerText,
+    mut inner_text: InnerText
 ) {
     for (entity, text_input, settings, mut cursor_pos) in &mut input_query {
         let Some(mut text) = inner_text.get_mut(entity) else {
@@ -372,7 +373,7 @@ fn update_value(
         set_section_values(
             &masked_value(&text_input.0, settings.mask_character),
             cursor_pos.0,
-            &mut text.sections,
+            &mut text.sections
         );
     }
 }
@@ -389,8 +390,8 @@ fn create(
             &TextInputSettings,
             &TextInputPlaceholder,
         ),
-        Added<TextInputValue>,
-    >,
+        Added<TextInputValue>
+    >
 ) {
     for (entity, style, text_input, cursor_pos, inactive, settings, placeholder) in &query {
         let mut sections = vec![
@@ -416,13 +417,13 @@ fn create(
             TextSection {
                 style: style.0.clone(),
                 ..default()
-            },
+            }
         ];
 
         set_section_values(
             &masked_value(&text_input.0, settings.mask_character),
             cursor_pos.0,
-            &mut sections,
+            &mut sections
         );
 
         let text = commands
@@ -439,8 +440,7 @@ fn create(
             ))
             .id();
 
-        let placeholder_style = placeholder
-            .text_style
+        let placeholder_style = placeholder.text_style
             .clone()
             .unwrap_or_else(|| placeholder_style(&style.0));
 
@@ -477,7 +477,7 @@ fn create(
                 style: Style {
                     overflow: Overflow::clip(),
                     justify_content: JustifyContent::FlexEnd,
-                    max_width: Val::Percent(100.),
+                    max_width: Val::Percent(100.0),
                     ..default()
                 },
                 ..default()
@@ -485,35 +485,24 @@ fn create(
             .id();
 
         commands.entity(overflow_container).add_child(text);
-        commands
-            .entity(entity)
-            .push_children(&[overflow_container, placeholder_text]);
+        commands.entity(entity).push_children(&[overflow_container, placeholder_text]);
     }
 }
 
 // Shows or hides the cursor based on the text input's [`TextInputInactive`] property.
 fn show_hide_cursor(
     mut input_query: Query<
-        (
-            Entity,
-            &TextInputTextStyle,
-            &mut TextInputCursorTimer,
-            &TextInputInactive,
-        ),
-        Changed<TextInputInactive>,
+        (Entity, &TextInputTextStyle, &mut TextInputCursorTimer, &TextInputInactive),
+        Changed<TextInputInactive>
     >,
-    mut inner_text: InnerText,
+    mut inner_text: InnerText
 ) {
     for (entity, style, mut cursor_timer, inactive) in &mut input_query {
         let Some(mut text) = inner_text.get_mut(entity) else {
             continue;
         };
 
-        text.sections[1].style.color = if inactive.0 {
-            Color::NONE
-        } else {
-            style.0.color
-        };
+        text.sections[1].style.color = if inactive.0 { Color::NONE } else { style.0.color };
 
         cursor_timer.timer.reset();
     }
@@ -521,14 +510,11 @@ fn show_hide_cursor(
 
 // Blinks the cursor on a timer.
 fn blink_cursor(
-    mut input_query: Query<(
-        Entity,
-        &TextInputTextStyle,
-        &mut TextInputCursorTimer,
-        Ref<TextInputInactive>,
-    )>,
+    mut input_query: Query<
+        (Entity, &TextInputTextStyle, &mut TextInputCursorTimer, Ref<TextInputInactive>)
+    >,
     mut inner_text: InnerText,
-    time: Res<Time>,
+    time: Res<Time>
 ) {
     for (entity, style, mut cursor_timer, inactive) in &mut input_query {
         if inactive.0 {
@@ -563,25 +549,27 @@ fn blink_cursor(
 fn show_hide_placeholder(
     input_query: Query<
         (&Children, &TextInputValue, &TextInputInactive),
-        Or<(Changed<TextInputValue>, Changed<TextInputInactive>)>,
+        Or<(Changed<TextInputValue>, Changed<TextInputInactive>)>
     >,
-    mut vis_query: Query<&mut Visibility, With<TextInputPlaceholderInner>>,
+    mut vis_query: Query<&mut Visibility, With<TextInputPlaceholderInner>>
 ) {
     for (children, text, inactive) in &input_query {
         let mut iter = vis_query.iter_many_mut(children);
         while let Some(mut inner_vis) = iter.fetch_next() {
-            inner_vis.set_if_neq(if text.0.is_empty() && inactive.0 {
-                Visibility::Inherited
-            } else {
-                Visibility::Hidden
-            });
+            inner_vis.set_if_neq(
+                if text.0.is_empty() && inactive.0 {
+                    Visibility::Inherited
+                } else {
+                    Visibility::Hidden
+                }
+            );
         }
     }
 }
 
 fn update_style(
     mut input_query: Query<(Entity, &TextInputTextStyle), Changed<TextInputTextStyle>>,
-    mut inner_text: InnerText,
+    mut inner_text: InnerText
 ) {
     for (entity, style) in &mut input_query {
         let Some(mut text) = inner_text.get_mut(entity) else {
@@ -623,12 +611,16 @@ fn remove_char_at(input: &str, index: usize) -> String {
 fn masked_value(value: &str, mask: Option<char>) -> String {
     mask.map_or_else(
         || value.to_string(),
-        |c| value.chars().map(|_| c).collect::<String>(),
+        |c|
+            value
+                .chars()
+                .map(|_| c)
+                .collect::<String>()
     )
 }
 
 fn placeholder_style(style: &TextStyle) -> TextStyle {
-    let color = style.color.with_a(style.color.a() * 0.25);
+    let color = style.color.with_alpha(style.color.alpha() * 0.25);
     TextStyle {
         color,
         ..style.clone()
